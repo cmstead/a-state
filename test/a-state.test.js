@@ -10,7 +10,7 @@ describe('a-state', function () {
     describe('type handling', function () {
 
         it('returns a list of all supported types when using typeNames', function () {
-            const expectedList = ['any', 'array', 'bigint', 'boolean', 'number', 'object', 'string', 'symbol'].join(',');
+            const expectedList = ['any', 'array', 'nullable', 'variant', 'bigint', 'boolean', 'number', 'object', 'string', 'symbol', 'undefined'].join(',');
             const actualList = AState.types.typeNames.join(',');
 
             assert.equal(actualList, expectedList);
@@ -27,6 +27,28 @@ describe('a-state', function () {
             const badTypeGetter = () => AState.types.badType;
 
             assert.throws(badTypeGetter);
+        });
+
+        it('allows null values when type is nullable', function() {
+            const { nullable } = AState.types;
+            const stateContainer = AState.new({ testing: nullable(AState.types.string)});
+            const { keys } = stateContainer;
+
+            const testBehavior = () => stateContainer.write(keys.testing, null);
+
+            assert.doesNotThrow(testBehavior);
+        });
+
+        it('supports multiple types when defined with variant', function() {
+            const { variant } = AState.types;
+            const stateContainer = AState.new({ testing: variant(AState.types.string, AState.types.number)});
+            const { keys } = stateContainer;
+
+            const stringTestBehavior = () => stateContainer.write(keys.testing, 'testing');
+            const numberTestBehavior = () => stateContainer.write(keys.testing, 1234);
+
+            assert.doesNotThrow(stringTestBehavior);
+            assert.doesNotThrow(numberTestBehavior);
         });
     });
 

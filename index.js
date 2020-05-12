@@ -59,11 +59,22 @@
     };
 
     function AState(store) {
-        this.keys = store.getKeys().reduce((result, key) => ({
+        const keys = store.getKeys().reduce((result, key) => ({
             ...result,
             [key]: key
         }), {});
 
+        const keyHandler = {
+            get: function(keys, key) {
+                if(!keys[key]) {
+                    throw new Error(`Key ${key} does not exist`);
+                }
+
+                return keys[key];
+            }
+        };
+
+        this.keys = new Proxy(keys, keyHandler);
         this.decorate = this.decorate.bind(this, store);
         this.read = this.read.bind(this, store);
         this.writeSync = this.writeSync.bind(this, store);
@@ -95,10 +106,14 @@
     };
 
     function buildTypeDefinitionSet() {
-        const typeNames = ['array', 'bigint', 'boolean', 'number', 'object', 'string', 'symbol'];
+        const typeNames = ['array', 'bigint', 'boolean', 'number', 'object', 'string', 'symbol', 'undefined'];
         const initialTypeSet = {
             any: () => true,
-            array: (value) => Array.isArray(value)
+            array: (value) => Array.isArray(value),
+            nullable: (typeVerifier) => (value) => (value === null) || typeVerifier(value),
+            variant: (...typeVerifiers) => typeVerifiers.reduce(function(compositeVerifier, typeVerifier) {
+                return (value) => typeVerifier(value) || compositeVerifier(value);
+            }, () => false)
         };
 
         initialTypeSet.array.type = 'array';
